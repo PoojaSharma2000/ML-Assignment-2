@@ -131,8 +131,9 @@ if uploaded_file is not None:
 
         st.stop()
 
-    # Separate features and target
-    X_test = test_data.drop(columns=["diagnosis"])
+    # FIX 1: Safely drop extra columns ('id', 'Unnamed: 0') along with target column
+    # Taaki test columns ki ginti exact training features se match ho jaye
+    X_test = test_data.drop(columns=["diagnosis", "id", "Unnamed: 0"], errors="ignore")
     y_test = test_data["diagnosis"]
 
     # Convert target if required
@@ -146,19 +147,21 @@ if uploaded_file is not None:
     # Select model
     model = models[selected_model]
 
-    # Apply scaling for models that require it
+    # FIX 2: Sabhi models ke liye raw numpy data (.values) ka use karenge 
+    # Taaki scikit-learn strict validation column name checking bypass ho jaye
     if selected_model in [
         "Logistic Regression",
         "KNN"
     ]:
 
-        X_processed = scaler.transform(X_test)
+        X_processed = scaler.transform(X_test.values)
 
     else:
-
-        X_processed = X_test
+        # Decision Tree, Random Forest aur Naive Bayes ke liye bhi bina features strict cross validation pass karega
+        X_processed = X_test.values
 
     # Predictions
+    # FIX 3: Predict step par raw arrays format use hoga structural stability ke liye
     y_pred = model.predict(X_processed)
 
     y_prob = model.predict_proba(
